@@ -97,7 +97,7 @@ class LutronConnection(threading.Thread):
   def _maybe_reconnect(self):
     """Reconnects to the controller if we have been previously disconnected."""
     with self._lock:
-      if not self._connected: 
+      if not self._connected:
         _LOGGER.info("Connecting")
         self._lock.release()
         try:
@@ -120,6 +120,62 @@ class LutronConnection(threading.Thread):
         continue
       self._recv_cb(line.decode('ascii').rstrip())
 
+class LutronJsonDbParser(object):
+  """The parser for Lutron Caseta JSON database.
+
+  The database describes all the rooms (Area), keypads (Device), and switches
+  (Output). We handle the most relevant features, but some things like LEDs,
+  etc. are not implemented."""
+
+  def __init__(self, lutron, json_db):
+    """Initializes the XML parser, takes the raw XML data as string input."""
+    self._lutron = lutron
+    self._json_db = json_db
+    self.areas = []
+    self.project_name = None
+
+  def parse(self):
+    """Main entrypoint into the parser. It interprets and creates all the
+    relevant Lutron objects and stuffs them into the appropriate hierarchy."""
+
+    # The structure is something like this:
+    # <LIPIdList>
+    #   <Devices>
+    #   <Zones>
+
+
+    # Strip off LIPIdList
+    top_area = self._json_db['LIPIdList']
+
+    area = Area(self._lutron,
+                name='caseta',
+                integration_id=1,
+                occupancy_group_id='none')
+    self.areas.append(area);
+    for zone in top_area['Zones']:
+        output = Output(self._lutron,
+                        name=zone['Name'],
+                        watts=0,
+                        output_type='None',
+                        integration_id=int(zone['ID']))
+
+        self.areas[0].add_output(output)
+    for device in top_area['Devices']:
+        keypad = Keypad(self._lutron,
+                        name=device['Name'],
+                        integration_id=int(device['ID']))
+        for button in device['Buttons']:
+            button = Button(self._lutron,
+                            name=int(button['Number']),
+                            num=int(button['Number']),
+                            button_type='none',
+                            direction='none')
+            keypad.add_button(button)
+        self.areas[0].add_keypad(keypad)
+
+    #import pdb; pdb.set_trace()
+    import pprint as pprint
+    return True
 
 class LutronXmlDbParser(object):
   """The parser for Lutron XML database.
@@ -158,7 +214,7 @@ class LutronXmlDbParser(object):
     areas = top_area.find('Areas')
     for area_xml in areas.getiterator('Area'):
       area = self._parse_area(area_xml)
-      self.areas.append(area)      
+      self.areas.append(area)
     return True
 
   def _parse_area(self, area_xml):
@@ -257,13 +313,14 @@ class Lutron(object):
   OP_QUERY = '?'
   OP_RESPONSE = '~'
 
-  def __init__(self, host, user, password):
+  def __init__(self, host, user, password, caseta=False):
     """Initializes the Lutron object. No connection is made to the remote
     device."""
     self._host = host
     self._user = user
     self._password = password
     self._name = None
+    self._caseta = caseta
     self._conn = LutronConnection(host, user, password, self._recv)
     self._ids = {}
     self._subscribers = {}
@@ -325,7 +382,6 @@ class Lutron(object):
 
   def load_xml_db(self):
     """Load the Lutron database from the server."""
-
     import urllib.request
     xmlfile = urllib.request.urlopen('http://' + self._host + '/DbXmlInfo.xml')
     xml_db = xmlfile.read()
@@ -339,6 +395,23 @@ class Lutron(object):
 
     _LOGGER.info('Found Lutron project: %s, %d areas' % (
         self._name, len(self.areas)))
+
+    return True
+
+  def load_json_db(self, filename):
+    """Load the Lutron Caseta database from a file."""
+    import json
+    with open(filename) as data_file:
+        json_db = json.load(data_file)
+        data_file.close()
+    _LOGGER.info("Loaded json db")
+    parser = LutronJsonDbParser(lutron=self, json_db=json_db)
+    assert(parser.parse())
+
+    self.areas = parser.areas
+    self._name = filename
+
+    _LOGGER.info('Found Lutron project: %s, %d areas' % (self._name, len(self.areas)))
 
     return True
 
@@ -485,7 +558,7 @@ class Output(LutronEntity):
         Output.ACTION_ZONE_LEVEL, "%.2f" % new_level)
     self._level = new_level
 
-## At some later date, we may want to also specify fade and delay times    
+## At some later date, we may want to also specify fade and delay times
 #  def set_level(self, new_level, fade_time, delay):
 #    self._lutron.send(Lutron.OP_EXECUTE, Output.CMD_TYPE,
 #        Output.ACTION_ZONE_LEVEL, new_level, fade_time, delay)
@@ -544,7 +617,7 @@ class Button(object):
 
 class Keypad(LutronEntity):
   """Object representing a Lutron keypad.
-  
+
   Currently we don't really do much with it except handle the events
   (and drop them on the floor).
   """
@@ -578,7 +651,7 @@ class Keypad(LutronEntity):
 
 class MotionSensor(object):
   """Placeholder class for the motion sensor device.
-  
+
   TODO: Actually implement this.
   """
   def __init__(self, lutron, name, integration_id):
@@ -638,4 +711,3 @@ class Area(object):
   def sensors(self):
     """Return the tuple of the MotionSensors from this area."""
     return tuple(sensor for sensor in self._sensors)
-
