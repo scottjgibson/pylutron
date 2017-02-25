@@ -173,8 +173,6 @@ class LutronJsonDbParser(object):
             keypad.add_button(button)
         self.areas[0].add_keypad(keypad)
 
-    #import pdb; pdb.set_trace()
-    import pprint as pprint
     return True
 
 class LutronXmlDbParser(object):
@@ -347,6 +345,10 @@ class Lutron(object):
     """Invoked by the connection manager to process incoming data."""
     if line == '':
       return
+
+    # it seems caseta hub returns strings starting with GNET> so strip it off
+    if line.startswith(PROMPT):
+        line = line[6:]
     # Only handle query response messages, which are also sent on remote status
     # updates (e.g. user manually pressed a keypad button)
     if line[0] != Lutron.OP_RESPONSE:
@@ -412,6 +414,8 @@ class Lutron(object):
     self._name = filename
 
     _LOGGER.info('Found Lutron project: %s, %d areas' % (self._name, len(self.areas)))
+    import pprint as pprint
+    import pdb; pdb.set_trace()
 
     return True
 
