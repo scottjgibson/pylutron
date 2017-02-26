@@ -347,7 +347,7 @@ class Lutron(object):
       return
 
     # it seems caseta hub returns strings starting with GNET> so strip it off
-    if line.startswith(PROMPT):
+    if line.startswith(LutronConnection.PROMPT):
         line = line[6:]
     # Only handle query response messages, which are also sent on remote status
     # updates (e.g. user manually pressed a keypad button)
@@ -414,8 +414,8 @@ class Lutron(object):
     self._name = filename
 
     _LOGGER.info('Found Lutron project: %s, %d areas' % (self._name, len(self.areas)))
-    import pprint as pprint
-    import pdb; pdb.set_trace()
+#    import pprint as pprint
+#    import pdb; pdb.set_trace()
 
     return True
 
