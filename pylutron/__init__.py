@@ -593,15 +593,17 @@ class Button(object):
     self._num = num
     self._button_type = button_type
     self._direction = direction
+    self._pressed = False
+    self._query_waiters = _RequestHelper()
 
   def __str__(self):
     """Pretty printed string value of the Button object."""
-    return 'Button name: "%s" num: %d action: "%s"' % (
-        self._name, self._num, self._action)
+    return 'Button name: "%s" num: %d  pressed:%s' % (
+        self._name, self._num, self._pressed)
 
   def __repr__(self):
     """String representation of the Button object."""
-    return str({'name': self._name, 'num': self._num, 'action': self._action})
+    return str({'name': self._name, 'num': self._num, 'pressed': self._pressed})
 
   @property
   def name(self):
@@ -618,12 +620,15 @@ class Button(object):
     """Returns the button type (Toggle, MasterRaiseLower, etc.)."""
     return self._button_type
 
+  def last_pressed(self):
+    """Returns last cached value of the output level, no query is performed."""
+    return self._level
+
+
+
 
 class Keypad(LutronEntity):
   """Object representing a Lutron keypad.
-
-  Currently we don't really do much with it except handle the events
-  (and drop them on the floor).
   """
   CMD_TYPE = 'DEVICE'
 
@@ -648,8 +653,19 @@ class Keypad(LutronEntity):
     component = int(args[0])
     action = int(args[1])
     params = [int(x) for x in args[2:]]
+    import pprint as pprint
+    import pudb; pudb.set_trace()
     _LOGGER.debug("Updating %d(%s): c=%d a=%d params=%s" % (
         self._integration_id, self._name, component, action, params))
+    for button in self._buttons:
+        if button._num == component:
+            if (action == 3):
+                button.pressed = True;
+            else:
+                button.pressed = False;
+            button._query_waiters.notify()
+            _LOGGER.debug("Button updated: %s" % button)
+
     return True
 
 
