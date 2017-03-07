@@ -653,8 +653,6 @@ class Keypad(LutronEntity):
     component = int(args[0])
     action = int(args[1])
     params = [int(x) for x in args[2:]]
-    import pprint as pprint
-    import pudb; pudb.set_trace()
     _LOGGER.debug("Updating %d(%s): c=%d a=%d params=%s" % (
         self._integration_id, self._name, component, action, params))
     for button in self._buttons:
