@@ -165,12 +165,27 @@ class LutronJsonDbParser(object):
                         name=device['Name'],
                         integration_id=int(device['ID']))
         for button in device['Buttons']:
-            button = Button(self._lutron,
-                            name=int(button['Number']),
-                            num=int(button['Number']),
-                            button_type='none',
-                            direction='none')
-            keypad.add_button(button)
+            if (device['Name'] != "Smart Bridge"):
+                button_num = int(button['Number'])
+                if (button_num == 2):
+                    button_name=keypad.name + "_on"
+                elif (button_num == 3):
+                    button_name=keypad.name + "_favorite"
+                elif (button_num == 4):
+                    button_name=keypad.name + "_off"
+                elif (button_num == 5):
+                    button_name=keypad.name + "_raise"
+                elif (button_num == 6):
+                    button_name=keypad.name + "_lower"
+                else:
+                    button_name=keypad.name + "_" + button_num
+
+                button = Button(self._lutron,
+                                name=button_name,
+                                num=button_num,
+                                button_type='none',
+                                direction='none')
+                keypad.add_button(button)
         self.areas[0].add_keypad(keypad)
 
     return True
@@ -510,7 +525,6 @@ class Output(LutronEntity):
     self._output_type = output_type
     self._level = 0.0
     self._query_waiters = _RequestHelper()
-
     self._lutron.register_id(Output.CMD_TYPE, self)
 
   def __str__(self):
@@ -615,10 +629,10 @@ class Button(object):
     """Returns the button number."""
     return self._num
 
-@property
-def pressed(self):
-  """Returns the current output level by querying the remote controller."""
-  return self._pressed
+  @property
+  def pressed(self):
+    """Returns the current output level by querying the remote controller."""
+    return self._pressed
 
   @property
   def button_type(self):
@@ -630,12 +644,22 @@ def pressed(self):
     return self._pressed
 
 
-
-
 class Keypad(LutronEntity):
   """Object representing a Lutron keypad.
   """
   CMD_TYPE = 'DEVICE'
+
+  def __str__(self):
+    """Pretty printed string value of the Keypad object."""
+    ret =  'Keypad name: "%s" integration_id: %d  ' % (
+        self._name, self._integration_id)
+    for button in self._buttons:
+        ret += "\n" + str(button)
+    return ret
+
+  def __repr__(self):
+    """String representation of the Keypad object."""
+    return str({'name': self._name, 'integration_id': self._integration_id})
 
   def __init__(self, lutron, name, integration_id):
     """Initializes the Keypad object."""
