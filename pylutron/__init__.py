@@ -181,6 +181,7 @@ class LutronJsonDbParser(object):
                     button_name=keypad.name + "_" + button_num
 
                 button = Button(self._lutron,
+                                keypad=keypad,
                                 name=button_name,
                                 num=button_num,
                                 button_type='none',
@@ -601,10 +602,11 @@ class Output(LutronEntity):
 class Button(object):
   """This object represents a keypad button that we can trigger and handle
   events for (button presses)."""
-  def __init__(self, lutron, name, num, button_type, direction):
+  def __init__(self, lutron, keypad, name, num, button_type, direction):
     self._lutron = lutron
     self._name = name
     self._num = num
+    self._keypad = keypad
     self._button_type = button_type
     self._direction = direction
     self._pressed = False
@@ -628,6 +630,10 @@ class Button(object):
   def number(self):
     """Returns the button number."""
     return self._num
+
+  def id(self):
+    """Returns the button number."""
+    return self._keypad.id
 
   @property
   def pressed(self):
