@@ -615,6 +615,11 @@ class Button(object):
     """Returns the button number."""
     return self._num
 
+@property
+def pressed(self):
+  """Returns the current output level by querying the remote controller."""
+  return self._pressed
+
   @property
   def button_type(self):
     """Returns the button type (Toggle, MasterRaiseLower, etc.)."""
@@ -622,7 +627,7 @@ class Button(object):
 
   def last_pressed(self):
     """Returns last cached value of the output level, no query is performed."""
-    return self._level
+    return self._pressed
 
 
 
@@ -658,9 +663,9 @@ class Keypad(LutronEntity):
     for button in self._buttons:
         if button._num == component:
             if (action == 3):
-                button.pressed = True;
+                button._pressed = True;
             else:
-                button.pressed = False;
+                button._pressed = False;
             button._query_waiters.notify()
             _LOGGER.debug("Button updated: %s" % button)
 
