@@ -671,6 +671,7 @@ class Keypad(LutronEntity):
     """Initializes the Keypad object."""
     super(Keypad, self).__init__(lutron, name, integration_id)
     self._buttons = []
+    self._query_waiters = _RequestHelper()
     self._lutron.register_id(Keypad.CMD_TYPE, self)
 
   def add_button(self, button):
@@ -690,6 +691,7 @@ class Keypad(LutronEntity):
     params = [int(x) for x in args[2:]]
     _LOGGER.debug("Updating %d(%s): c=%d a=%d params=%s" % (
         self._integration_id, self._name, component, action, params))
+    self._query_waiters.notify()
     for button in self._buttons:
         if button._num == component:
             if (action == 3):
@@ -698,7 +700,6 @@ class Keypad(LutronEntity):
                 button._pressed = False;
             button._query_waiters.notify()
             _LOGGER.debug("Button updated: %s" % button)
-
     return True
 
 
