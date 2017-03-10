@@ -475,7 +475,6 @@ class _RequestHelper(object):
     return ev
 
   def notify(self):
-    import pudb; pudb.set_trace()
     with self.__lock:
       events = self.__events
       self.__events = []
@@ -692,7 +691,6 @@ class Keypad(LutronEntity):
     params = [int(x) for x in args[2:]]
     _LOGGER.debug("Updating %d(%s): c=%d a=%d params=%s" % (
         self._integration_id, self._name, component, action, params))
-    import pudb; pudb.set_trace()
     for button in self._buttons:
         if button._num == component:
             if (action == 3):
